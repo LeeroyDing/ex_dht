@@ -1,9 +1,17 @@
 defmodule ElkDHT.Utils do
+  import Bitwise
   @node_id_bits 160
   @trans_id_bits 32
 
-  def random_node_id, do: :random.uniform(@node_id_bits / 8)
-  def random_trans_code, do: :random.uniform(@trans_id_bits / 8)
+  def random_node_id do
+    node_id = (1 <<< @node_id_bits |> :random.uniform)
+    << node_id :: size(@node_id_bits) >>
+  end
+  
+  def random_trans_id do
+    trans_id = (1 <<< @trans_id_bits |> :random.uniform)
+    << trans_id :: size(@trans_id_bits) >>
+  end
 
   def ip_to_hex(ip) do
     ip
@@ -22,5 +30,9 @@ defmodule ElkDHT.Utils do
       l * 16 + r
     end)
     |> Enum.map_join(".", &(Integer.to_string(&1)))
+  end
+
+  def get_version do
+    "BT\x00\x01"
   end
 end
