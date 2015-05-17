@@ -11,28 +11,28 @@ defmodule ElkDHT.Node do
   """
   def start_link(conf = %{id: node_id, host: host, port: port}, opts \\ []) do
     Logger.debug "Starting a new node #{Hexate.encode(node_id)}: #{host}:#{port}"
-    GenServer.start_link __MODULE__, conf, opts ++ [name: node_id]
+    GenServer.start_link __MODULE__, conf, opts ++ [name: String.to_atom("#{Hexate.encode(node_id)}")]
   end
 
   @doc """
   Add a transaction to the node.
   """
   def add_trans(node_id, name, info_hash \\ nil) do
-    GenServer.call node_id, {:add_trans, name, info_hash}
+    call node_id, {:add_trans, name, info_hash}
   end
 
   @doc """
   Delete a transaction from the node.
   """
   def del_trans(node_id, trans_id) do
-    GenServer.cast node_id, {:del_trans, trans_id}
+    cast node_id, {:del_trans, trans_id}
   end
 
   @doc """
   Update last access time of the node.
   """
   def update_access(node_id) do
-    GenServer.cast node_id, {:update_access}
+    cast node_id, {:update_access}
   end
 
   @doc """
@@ -59,16 +59,31 @@ defmodule ElkDHT.Node do
     send_message node_id, message, socket, trans_id
   end
 
+  @doc """
+  Remove the node.
+  """
+  def stop(node_id) do
+    cast node_id, {:stop}
+  end
+
   # Private
 
   defp send_message(node_id, message, socket, trans_id) do
-    GenServer.cast node_id, {:send_message, message, socket, trans_id}
+    cast node_id, {:send_message, message, socket, trans_id}
+  end
+
+  defp call(node_id, args) do
+    GenServer.call("#{Hexate.encode(node_id)}}" |> String.to_atom, args)
+  end
+
+  defp cast(node_id, args) do
+    GenServer.cast("#{Hexate.encode(node_id)}" |> String.to_atom, args)
   end
 
   # Callbacks
 
   def init(%{id: node_id, host: host, port: port}) do
-    Logger.debug "Initializing node #{node_id}."
+    Logger.debug "Initializing node #{Hexate.encode(node_id)}, host: #{host}, port: #{port}."
     {:ok, %{id: node_id, host: to_char_list(host), port: port, trans: HashDict.new, access_time: :os.timestamp}}
   end
 
@@ -87,11 +102,15 @@ defmodule ElkDHT.Node do
     {:noreply, %{state | access_time: :os.timestamp}}
   end
 
-  def handle_cast({:send_message, message, socket, trans_id}, state = {host: host, port: port}) do
+  def handle_cast({:send_message, message, socket, trans_id}, state = %{host: host, port: port}) do
     encoded = message
     |> Map.put "v", Utils.get_version
     |> Map.put "t", trans_id
     |> Bencodex.encode
     :gen_udp.send socket, host, port, [encoded]
+  end
+
+  def handle_cast({:stop}, _) do
+    {:stop, :normal}
   end
 end
