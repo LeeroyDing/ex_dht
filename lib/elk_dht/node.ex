@@ -60,7 +60,21 @@ defmodule ElkDHT.Node do
   end
 
   @doc """
-  Remove the node.
+  Send find_node message to the node.
+  """
+  def find_node(node_id, socket, sender_id) do
+    trans_id = add_trans node_id, "find_node"
+    message = %{ "y" => "q",
+                 "q" => "find_node",
+                 "a" => %{ "id" => sender_id,
+                           "target" => node_id }
+               }
+    Logger.debug "find_node msg to #{Hexate.encode(node_id)}"
+    send_message node_id, message, socket, trans_id
+  end
+
+  @doc """
+  Stop the node server.
   """
   def stop(node_id) do
     cast node_id, {:stop}
@@ -73,7 +87,7 @@ defmodule ElkDHT.Node do
   end
 
   defp call(node_id, args) do
-    GenServer.call("#{Hexate.encode(node_id)}}" |> String.to_atom, args)
+    GenServer.call("#{Hexate.encode(node_id)}" |> String.to_atom, args)
   end
 
   defp cast(node_id, args) do
@@ -104,10 +118,11 @@ defmodule ElkDHT.Node do
 
   def handle_cast({:send_message, message, socket, trans_id}, state = %{host: host, port: port}) do
     encoded = message
-    |> Map.put "v", Utils.get_version
-    |> Map.put "t", trans_id
+    |> Map.put("v", Utils.get_version)
+    |> Map.put("t", trans_id)
     |> Bencodex.encode
     :gen_udp.send socket, host, port, [encoded]
+    {:noreply, state}
   end
 
   def handle_cast({:stop}, _) do
