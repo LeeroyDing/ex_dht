@@ -120,7 +120,7 @@ defmodule ElkDHT.Node do
     encoded = message
     |> Map.put("v", Utils.get_version)
     |> Map.put("t", trans_id)
-    |> Bencodex.encode
+    |> Bencode.encode!
     :gen_udp.send socket, host, port, [encoded]
     {:noreply, state}
   end

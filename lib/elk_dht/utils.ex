@@ -5,13 +5,15 @@ defmodule ElkDHT.Utils do
   @trans_id_bits 32
 
   def random_node_id do
-    node_id = (1 <<< @node_id_bits |> :random.uniform)
-    << node_id :: size(@node_id_bits) >>
+    @node_id_bits |> div(8) |> random_bytes
   end
   
   def random_trans_id do
-    trans_id = (1 <<< @trans_id_bits |> :random.uniform)
-    << trans_id :: size(@trans_id_bits) >>
+    @trans_id_bits |> div(8) |> random_bytes
+  end
+
+  defp random_bytes(n) when is_number(n) do
+    List.duplicate(0, n) |> Enum.map(fn _ -> :random.uniform(256) - 1 end) |> Enum.reduce(<<>>, fn x, acc -> acc <> <<x>> end)
   end
 
   def ip_to_hex(ip) do
