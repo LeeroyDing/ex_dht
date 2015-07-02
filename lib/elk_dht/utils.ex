@@ -1,5 +1,4 @@
 defmodule ElkDHT.Utils do
-  import Bitwise
 
   @node_id_bits 160
   @trans_id_bits 32

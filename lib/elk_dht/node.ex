@@ -9,56 +9,17 @@ defmodule ElkDHT.Node do
   @doc """
   Starts the node.
   """
-  def start_link(conf = %{id: node_id, host: host, port: port}, opts \\ []) do
-    Logger.debug "Starting a new node #{Hexate.encode(node_id)}: #{host}:#{port}"
-    GenServer.start_link __MODULE__, conf, opts ++ [name: String.to_atom("#{Hexate.encode(node_id)}")]
+  def start_link(host, port, opts \\ []) do
+    node_id = Utils.random_node_id
+    Logger.debug "New node #{Hexate.encode(node_id}, #{host}:#{port}"
+    GenServer.start_link __MODULE__, opts
   end
 
-  @doc """
-  Add a transaction to the node.
-  """
-  def add_trans(node_id, name, info_hash \\ nil) do
-    call node_id, {:add_trans, name, info_hash}
+  def create(host, port) do
+    ElkDHT.Node.Supervisor.start_child host, port
   end
 
-  @doc """
-  Delete a transaction from the node.
-  """
-  def del_trans(node_id, trans_id) do
-    cast node_id, {:del_trans, trans_id}
-  end
-
-  @doc """
-  Update last access time of the node.
-  """
-  def update_access(node_id) do
-    cast node_id, {:update_access}
-  end
-
-  @doc """
-  Send ping to the node.
-  """
-  def ping(node_id, socket, sender_id) do
-    trans_id = add_trans node_id, "ping"
-    message = %{ "y" => "q",
-                 "q" => "ping",
-                 "a" => %{ "id" => sender_id }
-               }
-    Logger.debug "ping msg to #{node_id}, t: #{Hexate.encode(trans_id)}"
-    send_message node_id, message, socket, trans_id
-  end
-
-  @doc """
-  Send pong to the node.
-  """
-  def pong(node_id, socket, trans_id, sender_id) do
-    message = %{"y" => "r",
-                "r" => %{ "id" => sender_id }
-               }
-    Logger.debug "pong msg to #{node_id}, t: #{Hexate.encode(trans_id)}"
-    send_message node_id, message, socket, trans_id
-  end
-
+  # TODO: refactor
   @doc """
   Send find_node message to the node.
   """
@@ -128,4 +89,8 @@ defmodule ElkDHT.Node do
   def handle_cast({:stop}, _) do
     {:stop, :normal}
   end
+
+  def terminate(_reason, %{id: node_id}) do
+  end
+  
 end
