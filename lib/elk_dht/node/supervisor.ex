@@ -1,14 +1,13 @@
 defmodule ElkDHT.Node.Supervisor do
   use Supervisor
 
-  def start_link, do: Supervisor.start_link __MODULE__, [], [name: __MODULE__]
+  def start_link(socket, host, port), do: Supervisor.start_link(__MODULE__, [socket, host, port], [name: __MODULE__])
 
-  def start_child(host, port), do: Supervisor.start_child host, port
-
-  def init([]) do
+  def init([socket, host, port]) do
     children = [
-      worker(ElkDHT.Node, [])
+      worker(ElkDHT.Node.Worker, [host, port]),
+      supervisor(ElkDHT.Node.Transaction.Supervisor, [socket])
     ]
-    supervise children, strategy: :simple_one_for_one
+    supervise children, strategy: :one_for_one
   end
 end
