@@ -8,9 +8,16 @@ defmodule ElkDHT.Node do
   end
 
   def find_node(node_pid) do
-    {:ok, trans_pid} = ElkDHT.Node.Transaction.start_trans node_pid
-    message = ElkDHT.Node.message :find_node
-    ElkDHT.Node.Transaction.send_message trans_pid, message
+    message = message node_pid, :find_node
+    ElkDHT.Node.Transaction.send_message message, node_pid
   end
-  
+
+  def message(node_pid, :find_node) do
+    ElkDHT.Node.Worker.message node_pid, :find_node
+  end
+
+  def socket(sup_pid) do
+    :not_implemented
+  end
+
 end

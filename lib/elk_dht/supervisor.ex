@@ -7,11 +7,10 @@ defmodule ElkDHT.Supervisor do
   def start_child(host, port), do: Supervisor.start_child(__MODULE__, [host, port])
 
   def init([]) do
-    {:ok, socket} = :gen_udp.open 0
-    Logger.debug fn -> {:ok, port} = :inet.port(socket); "Socket opened on port #{port}" end
     children = [
-      supervisor(ElkDHT.Node.Supervisor, [socket])
+      supervisor(ElkDHT.Node.Supervisor, [])
     ]
     supervise children, strategy: :simple_one_for_one
   end
+  
 end

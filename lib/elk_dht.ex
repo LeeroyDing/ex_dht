@@ -13,7 +13,10 @@ defmodule ElkDHT do
   end
 
   def bootstrap do
-    {:ok, id} = ElkDHT.Node.create "router.bittorrent.com", 6881
-#    ElkDHT.Node.find_node id
+    {:ok, sup} = ElkDHT.Node.create "router.bittorrent.com", 6881
+    [{ElkDHT.Node.Worker, worker, _, _}] =
+      Supervisor.which_children(sup)
+    |> Enum.filter(fn {ElkDHT.Node.Worker, _, _, _} -> true; _ -> false end)
+    ElkDHT.Node.find_node worker
   end
 end
