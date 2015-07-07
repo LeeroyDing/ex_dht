@@ -34,6 +34,16 @@ defmodule ElkDHT.Utils do
     |> Enum.map_join(".", &(Integer.to_string(&1)))
   end
 
+  def time_left(start_time, timeout) do
+    now = :calendar.local_time
+    current_time = now |> :calendar.datetime_to_gregorian_seconds
+    time_elapsed = current_time - start_time
+    case timeout - time_elapsed do
+      time when time <= 0 -> 0
+      time -> time * 1000
+    end
+  end
+
   def get_version do
     "BT\x00\x01"
   end
