@@ -3,7 +3,6 @@ defmodule ElkDHT.Node.Transaction do
   require Logger
   alias ElkDHT.Utils
   @timeout 5
-
   def start_link(trans_id, timeout \\ @timeout, opts \\ []) do
     GenServer.start_link __MODULE__, [trans_id, timeout], opts ++ [timeout: timeout]
   end
@@ -30,12 +29,12 @@ defmodule ElkDHT.Node.Transaction do
     {:stop, :normal, state}
   end
 
-  def handle_info(:timeout, state) do
+  def handle_info(:timeout, state = {id, _, timeout}) do
+    Logger.debug "Transaction #{Hexate.encode(id)} timing out... timeout: #{timeout}"
     {:stop, :normal, state}
   end
 
-  def terminate(reason, {id, _start_time, _timeout}) do
-    Logger.debug "Transaction #{Hexate.encode(id)} trying to terminate due to reason: #{reason}."
+  def terminate(_reason, _state) do
     :ok
   end
   

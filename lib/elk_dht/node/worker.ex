@@ -3,7 +3,6 @@ defmodule ElkDHT.Node.Worker do
   require Logger
   alias ElkDHT.Utils
   alias ElkDHT.Node.Transaction
-  @trans_timeout 5000
 
   def start_link(host, port) do
     GenServer.start_link __MODULE__, [host, port]
@@ -70,13 +69,8 @@ defmodule ElkDHT.Node.Worker do
   def handle_info({:DOWN, ref, :process, _pid, reason}, state = %{transactions: transactions, trans_refs: trans_refs}) do
     {trans, refs} = Dict.pop trans_refs, ref
     transactions = Dict.delete transactions, trans
-    Logger.debug "Transaction #{Hexate.encode(trans)} down due to reason: #{reason}"
+    Logger.debug "Transaction #{Hexate.encode(trans)} down."
     {:noreply, %{state | transactions: transactions, trans_refs: refs}}
-  end
-
-  def handle_info(msg, state) do
-    IO.inspect msg
-    {:noreply, state}
   end
 
 end
