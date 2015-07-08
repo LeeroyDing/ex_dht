@@ -56,7 +56,7 @@ defmodule ElkDHT.Utils do
     <<node_id :: @node_id_bits, ip :: size(32), port :: size(16), rest :: binary>> = raw_nodes
     <<a, b, c, d>> = <<ip :: size(32)>>
 
-    parse_nodes(rest, [{<<node_id>>, "#{a}.#{b}.#{c}.#{d}", port} | nodes])
+    parse_nodes(rest, [{<<node_id :: @node_id_bits>>, "#{a}.#{b}.#{c}.#{d}", port} | nodes])
   end
 
   def get_version do

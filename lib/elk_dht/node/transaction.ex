@@ -18,12 +18,6 @@ defmodule ElkDHT.Node.Transaction do
   end
 
   def process_message(pid, message) do
-    """
- %{"ip" => <<120, 32, 238, 205, 196, 241>>,
- "r" => %{"id" => <<50, 245, 78, 105, 115, 81, 255, 74, 236, 41, 205, 186, 171, 242, 251, 227, 70, 124, 194, 103>>,
- "nodes" => <<250, 86, 158, 155, 142, 117, 56, 50, 209, 86, 168, 17, 207, 141, 73, 244, 219, 186, 248, 19, 176, 104, 237, 200, 102, 51, 157, 179, 124, 204, 165, 132, 237, 236, 47, 28, 183, 51, 45, 191, 66, 126, 8, 110, 106, 31, 115, ...>>},
- "t" => <<121, 102, 79, 15>>, "y" => "r"}
-    """
     GenServer.cast pid, {:process_message, message}
   end
 
@@ -34,9 +28,10 @@ defmodule ElkDHT.Node.Transaction do
   def handle_cast({:process_message,
                    %{"r" => %{"id" => node_id, "nodes" => raw_nodes}, "t" => id, "y" => "r"}},
                   {id, :find_node, _, _} = state) do
-    Logger.info "Found #{raw_nodes |> byte_size |> div(26)} new nodes from #{Hexate.encode(node_id)}."
+    Logger.info "Found #{raw_nodes |> byte_size |> div(26)} new nodes from node #{Hexate.encode(node_id)}."
     raw_nodes
     |> Utils.parse_nodes
+    |> Enum.uniq
     |> Enum.each(fn
       {node_id, ip, port} ->
         ElkDHT.Node.create ip, port, node_id

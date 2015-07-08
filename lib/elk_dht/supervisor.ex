@@ -8,7 +8,7 @@ defmodule ElkDHT.Supervisor do
 
   def init([]) do
     children = [
-      supervisor(ElkDHT.Node, [])
+      worker(ElkDHT.Node, [])
     ]
     supervise children, strategy: :simple_one_for_one
   end

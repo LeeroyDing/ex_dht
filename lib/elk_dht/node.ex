@@ -5,7 +5,7 @@ defmodule ElkDHT.Node do
   alias ElkDHT.Node.Transaction
 
   def start_link(host, port, node_id) do
-    GenServer.start_link __MODULE__, [host, port, node_id]
+    GenServer.start_link __MODULE__, [host, port, node_id], [name: :"#{Hexate.encode(node_id)}"]
   end
 
   def create(host, port) do
@@ -98,7 +98,6 @@ defmodule ElkDHT.Node do
     decoded = data
     |> Enum.reduce("", fn(x, acc) -> acc <> <<x>> end)
     |> Bencode.decode!
-    |> IO.inspect
     trans_pid = Dict.fetch! state.transactions, Map.get(decoded, "t")
     Transaction.process_message trans_pid, decoded
     {:noreply, state}
