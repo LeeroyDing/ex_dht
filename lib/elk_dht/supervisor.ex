@@ -4,11 +4,11 @@ defmodule ElkDHT.Supervisor do
 
   def start_link, do: Supervisor.start_link(__MODULE__, [], [name: __MODULE__])
 
-  def start_child(host, port), do: Supervisor.start_child(__MODULE__, [host, port])
+  def start_child(host, port, node_id), do: Supervisor.start_child(__MODULE__, [host, port, node_id])
 
   def init([]) do
     children = [
-      supervisor(ElkDHT.Node.Supervisor, [])
+      supervisor(ElkDHT.Node, [])
     ]
     supervise children, strategy: :simple_one_for_one
   end

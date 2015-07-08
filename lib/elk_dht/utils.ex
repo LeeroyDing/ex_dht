@@ -44,6 +44,21 @@ defmodule ElkDHT.Utils do
     end
   end
 
+  def parse_nodes(raw_nodes) do
+    raw_nodes
+    |> parse_nodes([])
+  end
+
+  defp parse_nodes(<<>>, nodes) when is_list(nodes), do: Enum.reverse(nodes)
+
+  defp parse_nodes(raw_nodes, nodes) when is_list(nodes) do
+    <<data :: size(208), _ :: binary>> = raw_nodes
+    <<node_id :: @node_id_bits, ip :: size(32), port :: size(16), rest :: binary>> = raw_nodes
+    <<a, b, c, d>> = <<ip :: size(32)>>
+
+    parse_nodes(rest, [{<<node_id>>, "#{a}.#{b}.#{c}.#{d}", port} | nodes])
+  end
+
   def get_version do
     "BT\x00\x01"
   end
