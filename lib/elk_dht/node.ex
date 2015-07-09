@@ -67,7 +67,7 @@ defmodule ElkDHT.Node do
     |> Map.put("t", trans_id)
     |> Bencode.encode!
     :gen_udp.send socket, to_char_list(host), port, [encoded]
-    Logger.info "Message sent for transaction: #{Hexate.encode(trans_id)}"
+    Logger.debug "Message sent for transaction: #{Hexate.encode(trans_id)}"
     {:noreply, state}
   end
 
