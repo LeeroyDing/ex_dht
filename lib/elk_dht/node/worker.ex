@@ -1,27 +1,11 @@
-defmodule ElkDHT.Node do
+defmodule ElkDHT.Node.Worker do
   use GenServer
   require Logger
   alias ElkDHT.Utils
   alias ElkDHT.Node.Transaction
 
-  def start_link(host, port, node_id) do
-    GenServer.start_link __MODULE__, [host, port, node_id], [name: :"#{Hexate.encode(node_id)}"]
-  end
-
-  def create(host, port) do
-    node_id = Utils.random_node_id
-    create(host, port, node_id)
-  end
-
-  def create(host, port, node_id) do
-    case ElkDHT.Supervisor.start_child(host, port, node_id) do
-      {:ok, pid} -> {:ok, pid}
-      other -> {:error, other}
-    end
-  end
-
-  def find_node(node_pid) do
-    send_message node_pid, :find_node
+  def start_link(host, port) do
+    GenServer.start_link __MODULE__, [host, port]
   end
 
   def node_id(pid) do
@@ -32,23 +16,16 @@ defmodule ElkDHT.Node do
     GenServer.call pid, :get_socket
   end
 
-  defp send_message(pid, type) do
-    trans_id = GenServer.call pid, {:add_trans, type}
-    GenServer.cast pid, {:send_message, type, trans_id}
-  end
-
-  defp build_message(id, :find_node) do
+  def message(pid, :find_node) do
+    id = node_id(pid)
     %{ "y" => "q",
        "q" => "find_node",
        "a" => %{ "id" => id,
                  "target" => id}}
   end
 
-  defp add_trans(pid, type) do
-    GenServer.call pid, {:add_trans, type}
-  end
-
-  def init([host, port, node_id]) do
+  def init([host, port]) do
+    node_id = Utils.random_node_id
     Logger.debug fn -> "New node #{Hexate.encode(node_id)} #{host}:#{port}" end
     {:ok, socket} = :gen_udp.open 0
     Logger.debug fn -> {:ok, port} = :inet.port(socket); "Listening to port #{port}" end
@@ -60,20 +37,9 @@ defmodule ElkDHT.Node do
     :ok
   end
 
-  def handle_cast({:send_message, type, trans_id}, state = %{id: id, host: host, port: port, socket: socket}) do
-    message = build_message(id, type)
-    encoded = message
-    |> Map.put("v", Utils.get_version)
-    |> Map.put("t", trans_id)
-    |> Bencode.encode!
-    :gen_udp.send socket, to_char_list(host), port, [encoded]
-    Logger.debug "Message sent for transaction: #{Hexate.encode(trans_id)}"
-    {:noreply, state}
-  end
-
-  def handle_call({:add_trans, type}, _from, state = %{transactions: transactions, trans_refs: trans_refs}) do
+  def handle_call(:add_trans, _from, state = %{transactions: transactions, trans_refs: trans_refs}) do
     trans_id = Utils.random_trans_id
-    {:ok, pid} = Transaction.start_link(trans_id, type)
+    {:ok, pid} = Transaction.start_link(trans_id)
     ref = Process.monitor pid
     transactions = Dict.put transactions, trans_id, pid
     trans_refs = Dict.put trans_refs, ref, trans_id
@@ -94,12 +60,9 @@ defmodule ElkDHT.Node do
 
   def handle_info({:udp, socket, {a, b, c, d}, port, data}, state = %{port: port, socket: socket}) do
     Logger.debug "Message received from #{a}.#{b}.#{c}.#{d}:#{port}"
-    File.write!("received", data)
-    decoded = data
+    data
     |> Enum.reduce("", fn(x, acc) -> acc <> <<x>> end)
     |> Bencode.decode!
-    trans_pid = Dict.fetch! state.transactions, Map.get(decoded, "t")
-    Transaction.process_message trans_pid, decoded
     {:noreply, state}
   end
 
