@@ -1,4 +1,4 @@
-defmodule ElkDHT.Utils do
+defmodule ExDHT.Utils do
 
   @node_id_bits 160
   @trans_id_bits 32
@@ -6,7 +6,7 @@ defmodule ElkDHT.Utils do
   def random_node_id do
     @node_id_bits |> div(8) |> random_bytes
   end
-  
+
   def random_trans_id do
     @trans_id_bits |> div(8) |> random_bytes
   end

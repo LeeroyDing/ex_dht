@@ -1,4 +1,4 @@
-defmodule ElkDHT.Supervisor do
+defmodule ExDHT.Supervisor do
   use Supervisor
   require Logger
 
@@ -8,9 +8,9 @@ defmodule ElkDHT.Supervisor do
 
   def init([]) do
     children = [
-      worker(ElkDHT.Node, [])
+      worker(ExDHT.Node, [])
     ]
     supervise children, strategy: :simple_one_for_one
   end
-  
+
 end

@@ -1,6 +1,6 @@
-defmodule ElkDHTTest do
+defmodule ExDHTTest do
   use ExUnit.Case
-  alias ElkDHT.Utils, as: Utils
+  alias ExDHT.Utils, as: Utils
 
   test "the truth" do
     assert 1 + 1 == 2

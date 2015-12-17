@@ -1,4 +1,4 @@
-defmodule ElkDHT do
+defmodule ExDHT do
   use Application
   require Logger
   @max_bootstrap_attempts 5
@@ -6,7 +6,7 @@ defmodule ElkDHT do
   @bootstrap_attemp_timeout 5
 
   def start(_type, _args) do
-    case ElkDHT.Supervisor.start_link do
+    case ExDHT.Supervisor.start_link do
       {:ok, pid} -> {:ok, pid}
       other -> {:error, other}
     end
@@ -21,7 +21,7 @@ defmodule ElkDHT do
      {"router.utorrent.com", 6881},
      {"dht.transmissionbt.com", 6881}]
     |> Enum.each(fn {host, port} ->
-      ElkDHT.Node.create host, port
+      ExDHT.Node.create host, port
     end)
     do_bootstrap(0)
   end
@@ -32,7 +32,7 @@ defmodule ElkDHT do
   end
 
   defp do_bootstrap(attempt) do
-    %{active: active_nodes} = Supervisor.count_children(ElkDHT.Supervisor)
+    %{active: active_nodes} = Supervisor.count_children(ExDHT.Supervisor)
     if active_nodes < 16 do
       Logger.info "Bootstrap attempt ##{attempt + 1} with #{active_nodes} nodes."
       find_node_all
@@ -45,12 +45,12 @@ defmodule ElkDHT do
   end
 
   def find_node_all do
-    Supervisor.which_children(ElkDHT.Supervisor)
+    Supervisor.which_children(ExDHT.Supervisor)
     |> Enum.each(fn
-      {:undefined, pid, :worker, [ElkDHT.Node]} ->
-        ElkDHT.Node.find_node pid
+      {:undefined, pid, :worker, [ExDHT.Node]} ->
+        ExDHT.Node.find_node pid
       _ -> :ok
     end)
   end
-  
+
 end

@@ -1,6 +1,6 @@
-defmodule ElkDHTTest.Utils do
+defmodule ExDHTTest.Utils do
   use ExUnit.Case
-  alias ElkDHT.Utils, as: Utils
+  alias ExDHT.Utils, as: Utils
 
   def ip do
     ["0.0.0.1", "0.0.1.0", "0.0.1.1", "0.1.0.0", "0.1.0.1", "0.1.1.0", "0.1.1.1", "1.0.0.0",

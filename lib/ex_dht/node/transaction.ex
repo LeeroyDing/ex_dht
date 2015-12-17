@@ -1,7 +1,7 @@
-defmodule ElkDHT.Node.Transaction do
+defmodule ExDHT.Node.Transaction do
   use GenServer
   require Logger
-  alias ElkDHT.Utils
+  alias ExDHT.Utils
   @timeout 5
   def start_link(trans_id, type, timeout \\ @timeout, opts \\ []) do
     GenServer.start_link __MODULE__, [trans_id, type, timeout], opts ++ [timeout: timeout]
@@ -34,11 +34,11 @@ defmodule ElkDHT.Node.Transaction do
     |> Enum.uniq
     |> Enum.each(fn
       {node_id, ip, port} ->
-        ElkDHT.Node.create ip, port, node_id
+        ExDHT.Node.create ip, port, node_id
     end)
     {:stop, :normal, state}
   end
-  
+
   def handle_info(:timeout, state = {id, type, _, timeout}) do
     Logger.debug "Transaction #{Hexate.encode(id)} (#{type}) timed out."
     {:stop, :normal, state}
