@@ -94,7 +94,6 @@ defmodule ExDHT.Node do
 
   def handle_info({:udp, socket, {a, b, c, d}, port, data}, state = %{port: port, socket: socket}) do
     Logger.debug "Message received from #{a}.#{b}.#{c}.#{d}:#{port}"
-    File.write!("received", data)
     decoded = data
     |> Enum.reduce("", fn(x, acc) -> acc <> <<x>> end)
     |> Bencode.decode!
