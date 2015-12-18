@@ -21,13 +21,13 @@ defmodule ExDHT.Node.Transaction do
     GenServer.cast pid, {:process_message, message}
   end
 
-  def handle_call(:id, _from, {id, _, start_time, timeout}) do
+  def handle_call(:id, _from, {id, _type, start_time, timeout}) do
     {:reply, id, {id, start_time}, Utils.time_left(start_time, timeout)}
   end
 
   def handle_cast({:process_message,
                    %{"r" => %{"id" => node_id, "nodes" => raw_nodes}, "t" => id, "y" => "r"}},
-                  {id, :find_node, _, _} = state) do
+                  {id, :find_node, _start_time, _timeout} = state) do
     Logger.info "Found #{raw_nodes |> byte_size |> div(26)} new nodes from node #{Hexate.encode(node_id)}."
     raw_nodes
     |> Utils.parse_nodes
@@ -39,7 +39,19 @@ defmodule ExDHT.Node.Transaction do
     {:stop, :normal, state}
   end
 
-  def handle_info(:timeout, state = {id, type, _, timeout}) do
+  def handle_cast({:process_message,
+                   %{"r" => %{"id" => node_id}, "t" => id, "y" => "r"}},
+                  {id, :ping, _start_time, _timeout} = state) do
+    Logger.info "Pong from node #{Hexate.encode(node_id)}."
+    {:stop, :pong, state}
+  end
+
+  def handle_info(:timeout, {id, :ping, _start_time, _timeout} = state) do
+    Logger.debug "Transaction #{Hexate.encode(id)} (:ping) timed out."
+    {:stop, :ping_timeout, state}
+  end
+
+  def handle_info(:timeout, {id, type, _start_time, _timeout} = state) do
     Logger.debug "Transaction #{Hexate.encode(id)} (#{type}) timed out."
     {:stop, :normal, state}
   end

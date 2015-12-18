@@ -24,6 +24,10 @@ defmodule ExDHT.Node do
     send_message node_pid, :find_node
   end
 
+  def ping(node_pid) do
+    send_message node_pid, :ping
+  end
+
   def node_id(pid) do
     GenServer.call pid, :get_node_id
   end
@@ -42,6 +46,12 @@ defmodule ExDHT.Node do
        "q" => "find_node",
        "a" => %{ "id" => id,
                  "target" => id}}
+  end
+
+  defp build_message(id, :ping) do
+    %{ "y" => "q",
+       "q" => "ping",
+       "a" => %{ "id" => id }}
   end
 
   defp add_trans(pid, type) do
@@ -102,7 +112,7 @@ defmodule ExDHT.Node do
     {:noreply, state}
   end
 
-  def handle_info({:DOWN, ref, :process, _pid, reason}, state = %{transactions: transactions, trans_refs: trans_refs}) do
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{transactions: transactions, trans_refs: trans_refs} = state) do
     {trans, refs} = Dict.pop trans_refs, ref
     transactions = Dict.delete transactions, trans
     Logger.debug "Transaction #{Hexate.encode(trans)} down."
