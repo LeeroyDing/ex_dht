@@ -1,4 +1,4 @@
-ElkDHT
+ExDHT
 ======
 
-** TODO: Add description **
+ExDHT is a library for handling DHT 

@@ -1,6 +1,7 @@
 defmodule ExDHT do
   use Application
   require Logger
+  
   @max_bootstrap_attempts 5
   @bootstrap_target_nodes 16
   @bootstrap_attemp_timeout 5
@@ -33,7 +34,7 @@ defmodule ExDHT do
 
   defp do_bootstrap(attempt) do
     %{active: active_nodes} = Supervisor.count_children(ExDHT.Supervisor)
-    if active_nodes < 16 do
+    if active_nodes < @bootstrap_target_nodes do
       Logger.info "Bootstrap attempt ##{attempt + 1} with #{active_nodes} nodes."
       find_node_all
       :timer.sleep(@bootstrap_attemp_timeout * 1000)

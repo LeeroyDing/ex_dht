@@ -3,7 +3,13 @@ defmodule ExDHT.Node do
   require Logger
   alias ExDHT.Utils
   alias ExDHT.Node.Transaction
+  alias ExDHT.Node.Pinger
+  alias ExDHT.Node.Suicider
+  defmodule State, do: defstruct id: nil, host: nil, port: nil, socket: nil, transactions: nil, trans_refs: nil, suicider: nil
 
+  @ping_interval 10000
+  @life_count 30
+  
   def start_link(host, port, node_id) do
     GenServer.start_link __MODULE__, [host, port, node_id], [name: :"#{Hexate.encode(node_id)}"]
   end
@@ -62,39 +68,41 @@ defmodule ExDHT.Node do
     Logger.debug fn -> "New node #{Hexate.encode(node_id)} #{host}:#{port}" end
     {:ok, socket} = :gen_udp.open 0
     Logger.debug fn -> {:ok, port} = :inet.port(socket); "Listening to port #{port}" end
-    {:ok, %{id: node_id, host: to_char_list(host), port: port, socket: socket, transactions: HashDict.new, trans_refs: HashDict.new}}
+    {:ok, suicider} = Suicider.start_link @ping_interval, @life_count
+    {:ok, _pinger} = Pinger.start_link self, @ping_interval
+    {:ok, %State{id: node_id, host: to_char_list(host), port: port, socket: socket, transactions: HashDict.new, trans_refs: HashDict.new, suicider: suicider}}
   end
 
-  def terminate(_reason, _state = %{id: id, host: host, port: port}) do
-    Logger.debug fn -> "Tearing down node #{Hexate.encode(id)} #{host}:#{port}" end
+  def terminate(_reason, state) do
+    Logger.debug fn -> "Tearing down node #{Hexate.encode(state.id)} #{state.host}:#{state.port}" end
     :ok
   end
 
-  def handle_cast({:send_message, type, trans_id}, state = %{id: id, host: host, port: port, socket: socket}) do
-    message = build_message(id, type)
+  def handle_cast({:send_message, type, trans_id}, state) do
+    message = build_message(state.id, type)
     encoded = message
     |> Map.put("v", Utils.get_version)
     |> Map.put("t", trans_id)
     |> Bencode.encode!
-    :gen_udp.send socket, to_char_list(host), port, [encoded]
+    :gen_udp.send state.socket, state.host, state.port, [encoded]
     Logger.debug "Message sent for transaction: #{Hexate.encode(trans_id)}"
     {:noreply, state}
   end
 
-  def handle_call({:add_trans, type}, _from, state = %{transactions: transactions, trans_refs: trans_refs}) do
+  def handle_call({:add_trans, type}, _from, state) do
     trans_id = Utils.random_trans_id
-    {:ok, pid} = Transaction.start_link(trans_id, type)
+    {:ok, pid} = Transaction.start_link(trans_id, type, self)
     ref = Process.monitor pid
-    transactions = Dict.put transactions, trans_id, pid
-    trans_refs = Dict.put trans_refs, ref, trans_id
+    transactions = Dict.put state.transactions, trans_id, pid
+    trans_refs = Dict.put state.trans_refs, ref, trans_id
     {:reply, trans_id, %{state | transactions: transactions, trans_refs: trans_refs}}
   end
 
-  def handle_call(:get_node_id, _from, state = %{id: id}) do
+  def handle_call(:get_node_id, _from, %State{id: id} = state) do
     {:reply, id, state}
   end
 
-  def handle_call(:get_socket, _from, state = %{socket: socket}) do
+  def handle_call(:get_socket, _from, %State{socket: socket} = state) do
     {:reply, socket, state}
   end
 
@@ -102,8 +110,9 @@ defmodule ExDHT.Node do
     {:reply, Dict.fetch!(state.transactions, trans_id), state}
   end
 
-  def handle_info({:udp, socket, {a, b, c, d}, port, data}, state = %{port: port, socket: socket}) do
+  def handle_info({:udp, socket, {a, b, c, d}, port, data}, %State{port: port, socket: socket, suicider: suicider} = state) do
     Logger.debug "Message received from #{a}.#{b}.#{c}.#{d}:#{port}"
+    Suicider.revive suicider
     decoded = data
     |> Enum.reduce("", fn(x, acc) -> acc <> <<x>> end)
     |> Bencode.decode!
@@ -112,9 +121,17 @@ defmodule ExDHT.Node do
     {:noreply, state}
   end
 
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{transactions: transactions, trans_refs: trans_refs} = state) do
-    {trans, refs} = Dict.pop trans_refs, ref
-    transactions = Dict.delete transactions, trans
+  def handle_info({:DOWN, ref, :process, suicider, :normal}, %State{suicider: suicider} = state) do
+    {trans, refs} = Dict.pop state.trans_refs, ref
+    transactions = Dict.delete state.transactions, trans
+    Logger.debug "Node #{Hexate.encode(state.id)} does not respond, removing it..."
+    {:stop, :normal, %{state | transactions: transactions, trans_refs: refs}}
+  end
+  
+
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
+    {trans, refs} = Dict.pop state.trans_refs, ref
+    transactions = Dict.delete state.transactions, trans
     Logger.debug "Transaction #{Hexate.encode(trans)} down."
     {:noreply, %{state | transactions: transactions, trans_refs: refs}}
   end
