@@ -8,7 +8,7 @@ defmodule ExDHT.Supervisor do
 
   def init([]) do
     children = [
-      worker(ExDHT.Node, [])
+      worker(ExDHT.Node.Worker, [])
     ]
     supervise children, strategy: :simple_one_for_one
   end
