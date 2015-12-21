@@ -3,23 +3,28 @@ defmodule ExDHT.Node.Worker do
   require Logger
   alias ExDHT.Utils
   alias ExDHT.Node.Transaction
+  alias __MODULE__.EventHandler
 
-  defmodule State, do: defstruct id: nil, host: nil, port: nil, socket: nil, transactions: nil, trans_refs: nil
+  defmodule State, do: defstruct id: nil, host: nil, port: nil, socket: nil, event_manager: nil, trans_sup: nil
 
   @ping_interval 10000
   @life_count 30
   
-  def start_link(host, port, node_id) do
-    GenServer.start_link __MODULE__, [host, port, node_id]
+  def start_link(host, port, event_manager, node_id) do
+    GenServer.start_link __MODULE__, [host, port, event_manager, node_id]
   end
 
   def socket(pid) do
-    GenServer.call pid, :get_socket
+    {:ok, _socket} = GenServer.call pid, :get_socket
   end
 
   def send_message(pid, type) do
-    trans_id = add_trans(pid, type)
-    GenServer.cast pid, {:send_message, type, trans_id}
+    trans_id = start_trans(pid, type)
+    :ok = GenServer.cast pid, {:send_message, type, trans_id}
+  end
+
+  def set_trans_sup(pid, trans_sup) do
+    {:ok, ^trans_sup} = GenServer.call pid, {:set_trans_sup, trans_sup}
   end
 
   defp build_message(id, :find_node) do
@@ -35,15 +40,18 @@ defmodule ExDHT.Node.Worker do
        "a" => %{ "id" => id }}
   end
 
-  defp add_trans(pid, type) do
-    GenServer.call pid, {:add_trans, type}
+  defp start_trans(pid, type) do
+    GenServer.call pid, {:start_trans, type}
   end
 
-  def init([host, port, node_id]) do
+  def init([host, port, event_manager, node_id]) do
+    GenEvent.add_mon_handler event_manager, EventHandler, self
     Logger.debug fn -> "New node #{Hexate.encode(node_id)} #{host}:#{port}" end
     {:ok, socket} = :gen_udp.open 0
     Logger.debug fn -> {:ok, port} = :inet.port(socket); "Listening to port #{port}" end
-    {:ok, %State{id: node_id, host: to_char_list(host), port: port, socket: socket, transactions: HashDict.new, trans_refs: HashDict.new}}
+    GenEvent.sync_notify event_manager, {:worker_init, self}
+    Utils.seed
+    {:ok, %State{id: node_id, host: to_char_list(host), port: port, socket: socket, event_manager: event_manager}}
   end
 
   def terminate(_reason, state) do
@@ -62,13 +70,14 @@ defmodule ExDHT.Node.Worker do
     {:noreply, state}
   end
 
-  def handle_call({:add_trans, type}, _from, state) do
+  def handle_call({:set_trans_sup, trans_sup}, _from, state) do
+    {:reply, {:ok, trans_sup}, %State{state | trans_sup: trans_sup}}
+  end
+  
+  def handle_call({:start_trans, type}, _from, state) do
     trans_id = Utils.random_trans_id
-    {:ok, pid} = Transaction.start_link(trans_id, type, self)
-    ref = Process.monitor pid
-    transactions = Dict.put state.transactions, trans_id, pid
-    trans_refs = Dict.put state.trans_refs, ref, trans_id
-    {:reply, trans_id, %{state | transactions: transactions, trans_refs: trans_refs}}
+    {:ok, _pid} = Transaction.Supervisor.start_child(state.trans_sup, trans_id, type)
+    {:reply, trans_id, state}
   end
 
   def handle_call(:get_node_id, _from, %State{id: id} = state) do
@@ -79,25 +88,24 @@ defmodule ExDHT.Node.Worker do
     {:reply, socket, state}
   end
 
-  def handle_call({:get_trans, trans_id}, _from, state) do
-    {:reply, Dict.fetch!(state.transactions, trans_id), state}
-  end
-
-  def handle_info({:udp, socket, {a, b, c, d}, port, data}, %State{port: port, socket: socket} = state) do
+  def handle_info({:udp, socket, {a, b, c, d}, port, data}, %State{port: port, socket: socket, event_manager: event_manager} = state) do
     Logger.debug "Message received from #{a}.#{b}.#{c}.#{d}:#{port}"
     decoded = data
     |> Enum.reduce("", fn(x, acc) -> acc <> <<x>> end)
     |> Bencode.decode!
-    trans_pid = Dict.fetch! state.transactions, Map.get(decoded, "t")
-    Transaction.process_message trans_pid, decoded
+    trans_id = decoded["t"]
+    GenEvent.sync_notify event_manager, {:message_received, trans_id, decoded}
     {:noreply, state}
   end
 
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
-    {trans, refs} = Dict.pop state.trans_refs, ref
-    transactions = Dict.delete state.transactions, trans
-    Logger.debug "Transaction #{Hexate.encode(trans)} down."
-    {:noreply, %{state | transactions: transactions, trans_refs: refs}}
+  defmodule EventHandler do
+    use GenEvent
+    alias ExDHT.Node.Worker
+    require Logger
+    def handle_event({:trans_sup_init, pid}, parent) do
+      Worker.set_trans_sup parent, pid
+      {:ok, parent}
+    end
+    def handle_event(_msg, state), do: {:ok, state}
   end
-
 end

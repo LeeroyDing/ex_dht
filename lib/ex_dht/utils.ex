@@ -3,12 +3,18 @@ defmodule ExDHT.Utils do
   @node_id_bits 160
   @trans_id_bits 32
 
+  def seed do
+    :random.seed(:erlang.phash2([node]),
+                 :erlang.monotonic_time,
+                 :erlang.unique_integer)
+  end
+  
   def random_node_id do
     @node_id_bits |> div(8) |> random_bytes
   end
 
   def random_trans_id do
-    @trans_id_bits |> div(8) |> random_bytes
+    @trans_id_bits |> div(8) |> random_bytes |> IO.inspect
   end
 
   defp random_bytes(n) when is_number(n) do
@@ -52,7 +58,7 @@ defmodule ExDHT.Utils do
   defp parse_nodes(<<>>, nodes) when is_list(nodes), do: Enum.reverse(nodes)
 
   defp parse_nodes(raw_nodes, nodes) when is_list(nodes) do
-    <<data :: size(208), _ :: binary>> = raw_nodes
+    <<_data :: size(208), _ :: binary>> = raw_nodes
     <<node_id :: @node_id_bits, ip :: size(32), port :: size(16), rest :: binary>> = raw_nodes
     <<a, b, c, d>> = <<ip :: size(32)>>
 

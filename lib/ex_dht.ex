@@ -22,7 +22,7 @@ defmodule ExDHT do
      {"router.utorrent.com", 6881},
      {"dht.transmissionbt.com", 6881}]
     |> Enum.each(fn {host, port} ->
-      ExDHT.Node.create host, port
+      {:ok, _pid} = ExDHT.Node.create host, port
     end)
     do_bootstrap(0)
   end
@@ -48,7 +48,7 @@ defmodule ExDHT do
   def find_node_all do
     Supervisor.which_children(ExDHT.Supervisor)
     |> Enum.each(fn
-      {_id, pid, :worker, [ExDHT.Node.Worker]} ->
+      {_id, pid, :supervisor, [ExDHT.Node.Supervisor]} ->
         ExDHT.Node.find_node pid
       _ -> :ok
     end)

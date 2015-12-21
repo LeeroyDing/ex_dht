@@ -21,15 +21,24 @@ defmodule ExDHT.Node do
   end
 
   def find_node(pid) do
-    Worker.send_message pid, :find_node
+    pid
+    |> worker
+    |> Worker.send_message :find_node
   end
 
   def ping(pid) do
-    Worker.send_message pid, :ping
+    pid
+    |> worker
+    |> Worker.send_message :ping
   end
 
-  def node_id(pid) do
-    GenServer.call pid, :get_node_id
+  defp worker(pid) do
+    Supervisor.which_children(pid)
+    |> Enum.find(fn
+      {:worker, _pid, :worker, [Worker]} -> true
+      _ -> false
+    end)
+    |> elem(1)
   end
-
+  
 end
