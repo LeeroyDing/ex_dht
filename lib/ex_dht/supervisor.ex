@@ -6,6 +6,8 @@ defmodule ExDHT.Supervisor do
 
   def start_child(host, port, node_id), do: Supervisor.start_child(__MODULE__, [host, port, node_id])
 
+  def terminate_child(child), do: Supervisor.terminate_child __MODULE__, child
+  
   def init([]) do
     children = [
       supervisor(ExDHT.Node.Supervisor, [])

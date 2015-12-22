@@ -14,7 +14,7 @@ defmodule ExDHT.Utils do
   end
 
   def random_trans_id do
-    @trans_id_bits |> div(8) |> random_bytes |> IO.inspect
+    @trans_id_bits |> div(8) |> random_bytes
   end
 
   defp random_bytes(n) when is_number(n) do
