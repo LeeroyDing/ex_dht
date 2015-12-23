@@ -7,9 +7,6 @@ defmodule ExDHT.Node.Worker do
 
   defmodule State, do: defstruct id: nil, host: nil, port: nil, socket: nil, event_manager: nil, trans_sup: nil
 
-  @ping_interval 10000
-  @life_count 30
-  
   def start_link(host, port, event_manager, node_id) do
     GenServer.start_link __MODULE__, [host, port, event_manager, node_id]
   end
