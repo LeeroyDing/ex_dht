@@ -34,7 +34,7 @@ defmodule ExDHT.Node.Suicider do
   end
 
   def terminate(:normal, %State{life_count: 0} = state) do
-    ExDHT.Supervisor.terminate_child state.node
+    ExDHT.Node.stop state.node
     :stop
   end
 

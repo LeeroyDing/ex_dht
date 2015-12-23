@@ -1,10 +1,8 @@
 defmodule ExDHT.Node do
-  use GenServer
   require Logger
   alias ExDHT.Utils
   alias ExDHT.Node.Worker
 
-  defmodule State, do: defstruct id: nil, host: nil, port: nil, socket: nil, transactions: nil, trans_refs: nil, suicider: nil
 
   def create(host, port) do
     node_id = Utils.random_node_id
@@ -30,6 +28,10 @@ defmodule ExDHT.Node do
     pid
     |> worker
     |> Worker.send_message :ping
+  end
+
+  def stop(pid) do
+    ExDHT.Supervisor.terminate_child pid
   end
 
   defp worker(pid) do
