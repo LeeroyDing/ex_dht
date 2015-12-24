@@ -4,15 +4,14 @@ defmodule ExDHT.Supervisor do
 
   def start_link, do: Supervisor.start_link(__MODULE__, [], [name: __MODULE__])
 
-  def start_child(host, port, node_id), do: Supervisor.start_child(__MODULE__, [host, port, node_id])
-
-  def terminate_child(child), do: Supervisor.terminate_child __MODULE__, child
-  
   def init([]) do
+    {:ok, event_manager} = GenEvent.start_link
+    
     children = [
-      supervisor(ExDHT.Node.Supervisor, [])
+      supervisor(ExDHT.Node.Supervisor, [event_manager]),
+      worker(ExDHT.Socket, [event_manager])
     ]
-    supervise children, strategy: :simple_one_for_one
+    supervise children, strategy: :one_for_one
   end
 
 end

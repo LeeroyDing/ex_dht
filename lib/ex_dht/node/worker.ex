@@ -2,7 +2,7 @@ defmodule ExDHT.Node.Worker do
   use GenServer
   require Logger
   alias ExDHT.Utils
-  alias ExDHT.Node.Transaction
+  alias ExDHT.Node.Worker.Transaction
   alias __MODULE__.EventHandler
 
   defmodule State, do: defstruct id: nil, host: nil, port: nil, socket: nil, event_manager: nil, trans_sup: nil
