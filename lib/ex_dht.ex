@@ -4,7 +4,7 @@ defmodule ExDHT do
   
   @max_bootstrap_attempts 5
   @bootstrap_target_nodes 16
-  @bootstrap_attemp_timeout 5
+  @bootstrap_attemp_timeout 10000
 
   def start(_type, _args) do
     case ExDHT.Supervisor.start_link do
@@ -33,11 +33,11 @@ defmodule ExDHT do
   end
 
   defp do_bootstrap(attempt) do
-    %{active: active_nodes} = Supervisor.count_children(ExDHT.Supervisor)
+    %{active: active_nodes} = Supervisor.count_children(ExDHT.Node.Supervisor)
     if active_nodes < @bootstrap_target_nodes do
       Logger.info "Bootstrap attempt ##{attempt + 1} with #{active_nodes} nodes."
       find_node_all
-      :timer.sleep(@bootstrap_attemp_timeout * 1000)
+      :timer.sleep(@bootstrap_attemp_timeout)
       do_bootstrap(attempt + 1)
     else
       Logger.info "Found #{active_nodes} nodes, should be enough."
@@ -46,9 +46,9 @@ defmodule ExDHT do
   end
 
   def find_node_all do
-    Supervisor.which_children(ExDHT.Supervisor)
+    Supervisor.which_children(ExDHT.Node.Supervisor)
     |> Enum.each(fn
-      {_id, pid, :supervisor, [ExDHT.Node.Supervisor]} ->
+      {_id, pid, :supervisor, [ExDHT.Node.Worker.Supervisor]} ->
         ExDHT.Node.find_node pid
       _ -> :ok
     end)

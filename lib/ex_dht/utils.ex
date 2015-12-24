@@ -65,7 +65,7 @@ defmodule ExDHT.Utils do
     parse_nodes(rest, [{<<node_id :: @node_id_bits>>, "#{a}.#{b}.#{c}.#{d}", port} | nodes])
   end
 
-  def get_version do
+  def version do
     "BT\x00\x01"
   end
 end
