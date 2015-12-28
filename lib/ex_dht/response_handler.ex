@@ -2,11 +2,7 @@ defmodule ExDHT.ResponseHandler do
   use GenServer
   alias ExDHT.Node
 
-  def start_link(event_manager), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
-
-  def init(event_manager) do
-    GenEvent.add_mon_handler event_manager, EventHandler, self
-  end
+  def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   def handle_cast({:ping,
                    %{"y" => "r",
@@ -35,15 +31,4 @@ defmodule ExDHT.ResponseHandler do
     {:noreply, state}
   end
 
-  defmodule EventHandler do
-    use GenEvent
-    alias ExDHT.ResponseHandler
-    
-    def handle_event({:udp_message_received, message}, parent) do
-      {:ok, parent}
-    end
-    
-    def handle_event(_msg, state), do: {:ok, state}
-  end
-  
 end
