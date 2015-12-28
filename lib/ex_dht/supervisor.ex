@@ -6,10 +6,11 @@ defmodule ExDHT.Supervisor do
 
   def init([]) do
     {:ok, event_manager} = GenEvent.start_link
-    
+
     children = [
       supervisor(ExDHT.Node.Supervisor, [event_manager]),
-      worker(ExDHT.Socket, [event_manager])
+      worker(ExDHT.Socket, [event_manager]),
+      worker(ExDHT.Node, [ExDHT.Utils.random_node_id])
     ]
     supervise children, strategy: :one_for_one
   end
