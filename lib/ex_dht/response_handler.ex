@@ -40,7 +40,7 @@ defmodule ExDHT.ResponseHandler do
     alias ExDHT.ResponseHandler
     
     def handle_event({:udp_message_received, message}, parent) do
-      {:ok, parent}
+      raise "Not implemented"
     end
     
     def handle_event(_msg, state), do: {:ok, state}
