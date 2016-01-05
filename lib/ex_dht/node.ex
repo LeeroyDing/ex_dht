@@ -18,13 +18,13 @@ defmodule ExDHT.Node do
   def find_node(pid) do
     pid
     |> worker
-    |> Worker.send_message :find_node
+    |> Worker.send_message(:find_node)
   end
 
   def ping(pid) do
     pid
     |> worker
-    |> Worker.send_message :ping
+    |> Worker.send_message(:ping)
   end
 
   def stop(pid) do

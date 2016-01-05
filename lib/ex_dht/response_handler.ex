@@ -5,7 +5,8 @@ defmodule ExDHT.ResponseHandler do
   def start_link(event_manager), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   def init(event_manager) do
-    GenEvent.add_mon_handler event_manager, EventHandler, self
+    :ok = GenEvent.add_mon_handler event_manager, EventHandler, self
+    {:ok, []}
   end
 
   def handle_cast({:ping,
