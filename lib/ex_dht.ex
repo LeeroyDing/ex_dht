@@ -45,13 +45,4 @@ defmodule ExDHT do
     end
   end
 
-  def find_node_all do
-    Supervisor.which_children(ExDHT.Node.Supervisor)
-    |> Enum.each(fn
-      {_id, pid, :supervisor, [ExDHT.Node.Worker.Supervisor]} ->
-        ExDHT.Node.find_node pid
-      _ -> :ok
-    end)
-  end
-
 end
