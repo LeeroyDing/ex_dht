@@ -1,6 +1,6 @@
 defmodule ExDHTTest.Utils do
   use ExUnit.Case
-  alias ExDHT.Utils, as: Utils
+  alias ExDHT.Utils, warn: false
 
   def ip do
     ["0.0.0.1", "0.0.1.0", "0.0.1.1", "0.1.0.0", "0.1.0.1", "0.1.1.0", "0.1.1.1", "1.0.0.0",
@@ -17,16 +17,22 @@ defmodule ExDHTTest.Utils do
   test "change from ip to hex" do
     result = Enum.map ip, &(Utils.ip_to_hex(&1))
     assert length(result) == length(hex)
-    Enum.zip(result, hex) |> Enum.each fn {lhs, rhs} ->
+    Enum.zip(result, hex)
+    |> Enum.each(fn {lhs, rhs} ->
       assert lhs == rhs
-    end
+    end)
   end
 
   test "change from hex to ip" do
     result = Enum.map hex, &(Utils.hex_to_ip(&1))
     assert length(result) == length(ip)
-    Enum.zip(result, ip) |> Enum.each fn {lhs, rhs} ->
+    Enum.zip(result, ip)
+    |> Enum.each(fn {lhs, rhs} ->
       assert lhs == rhs
-    end
+    end)
+  end
+
+  test "BT version" do
+    assert Utils.version == "BT\x00\x01"
   end
 end
