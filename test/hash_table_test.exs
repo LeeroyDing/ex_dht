@@ -28,4 +28,11 @@ defmodule ExDHTTest.HashTable do
     assert HashTable.has_peer?(@hash, @peer) == false
     HashTable.remove_hash @hash
   end
+
+  test "Can't add / remove / check peer for non-existing hash" do
+    assert HashTable.add_peer(@hash, @peer) == :error
+    assert HashTable.remove_peer(@hash, @peer) == :error
+    assert HashTable.has_peer?(@hash, @peer) == :error
+  end
+  
 end

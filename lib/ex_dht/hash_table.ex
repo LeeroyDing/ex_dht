@@ -32,7 +32,7 @@ defmodule ExDHT.HashTable do
     GenServer.call __MODULE__, {:remove_peer, hash, peer}
   end
   
-  @spec has_peer?(String.t, String.t) :: boolean
+  @spec has_peer?(String.t, String.t) :: boolean | :error
   def has_peer?(hash, peer) do
     GenServer.call __MODULE__, {:has_peer?, hash, peer}
   end
