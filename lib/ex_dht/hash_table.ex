@@ -59,22 +59,25 @@ defmodule ExDHT.HashTable do
   end
 
   def handle_call({:add_peer, hash, peer}, _from, ht) do
-    peers = Map.get(ht, hash)
-    new_peers = MapSet.put(peers, peer)
-    new_ht = Map.put(ht, hash, new_peers)
-    {:reply, :ok, new_ht}
+    with {:ok, peers} <- Map.fetch(ht, hash) do
+      new_peers = MapSet.put(peers, peer)
+      new_ht = Map.put(ht, hash, new_peers)
+      {:reply, :ok, new_ht}
+    end
   end
 
   def handle_call({:remove_peer, hash, peer}, _from, ht) do
-    peers = Map.get(ht, hash)
-    new_peers = MapSet.delete(peers, peer)
-    new_ht = Map.put(ht, hash, new_peers)
-    {:reply, :ok, new_ht}
+    with {:ok, peers} <- Map.fetch(ht, hash) do
+      new_peers = MapSet.delete(peers, peer)
+      new_ht = Map.put(ht, hash, new_peers)
+      {:reply, :ok, new_ht}
+    end
   end
 
   def handle_call({:has_peer?, hash, peer}, _from, ht) do
-    peers = Map.get(ht, hash)
-    {:reply, MapSet.member?(peers, peer), ht}
+    with peers <- Map.get(ht, hash) do
+      {:reply, MapSet.member?(peers, peer), ht}
+    end
   end
 
 end
