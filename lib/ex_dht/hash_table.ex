@@ -4,7 +4,7 @@ defmodule ExDHT.HashTable do
   ## Public API
 
   def start_link do
-    GenServer.start_link __MODULE__, :ok, name: __MODULE__
+    GenServer.start_link __MODULE__, [], name: __MODULE__
   end
 
   @spec add_hash(String.t) :: atom
@@ -39,7 +39,7 @@ defmodule ExDHT.HashTable do
   
   ## Server callbacks
 
-  def init(:ok) do
+  def init([]) do
     {:ok, %{}}
   end
 
