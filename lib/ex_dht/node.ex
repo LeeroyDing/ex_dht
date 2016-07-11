@@ -69,5 +69,7 @@ defmodule ExDHT.Node do
   end
 
   ## Server callback
-  
+
+  ## Private functions
+
 end
