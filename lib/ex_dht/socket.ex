@@ -63,5 +63,11 @@ defmodule ExDHT.Socket do
     GenEvent.notify(state.event_manager, {addr, port, msg})
     {:noreply, state}
   end
+
+  def terminate(reason, state) do
+    :gen_udp.close state.socket
+    GenEvent.notify event_manager, {:socket_close, reason}
+    :stop
+  end
   
 end
