@@ -1,5 +1,7 @@
 defmodule ExDHT.Node do
   use GenServer
+  alias ExDHT.Socket
+  alias ExDHT.Utils
 
   defstruct id: "", host: "", port: 0, trans: %{}, tokens: %{}, local_tokens: %{}, access_time: :os.system_time
 
@@ -11,7 +13,7 @@ defmodule ExDHT.Node do
   end
 
   @doc "Generate and add new transaction"
-  @spec add_trans(pid(), String.t, bitstring()) :: :ok | :error
+  @spec add_trans(pid(), String.t, bitstring() | nil) :: bitstring()
   def add_trans(node, name, info_hash \\ nil) do
     GenServer.call node, {:add_trans, name, info_hash}
   end
@@ -70,6 +72,38 @@ defmodule ExDHT.Node do
 
   ## Server callback
 
+  def init({host, port, id}) do
+    {:ok, %__MODULE__{host: host, port: port, id: id}}
+  end
+
+  def handle_call({:add_trans, name, info_hash}, _from, state) do
+    trans_id = Utils.random_trans_id()
+    trans = Map.put(
+      state.trans, trans_id, %{
+        "name" => name,
+        "info_hash" => info_hash,
+        "access_time" => :os.system_time
+      }
+    )
+    {:reply, trans_id, %{state | trans: trans}}
+  end
+
+  def handle_call({:delete_trans, trans_id}, _from, state) do
+    trans = Map.delete(state.trans, trans_id)
+    {:reply, :ok, %{state | trans: trans}}
+  end
+
   ## Private functions
 
+  @spec send_message(%__MODULE__{}, bitstring(), bitstring() | nil) :: :ok | :error
+  defp send_message(state, message, trans_id \\ nil) do
+    message = Map.put_new(message, "v", Utils.version)
+    message = case trans_id do
+                nil -> message
+                t -> Map.put_new(message, "t", t)
+              end
+    encoded = Bencode.encode!(message)
+    Socket.send_message(encoded, state.host, state.port)
+  end
+  
 end
