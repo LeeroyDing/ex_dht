@@ -93,6 +93,20 @@ defmodule ExDHT.Node do
     {:reply, :ok, %{state | trans: trans}}
   end
 
+  def handle_call({:add_token, info_hash, token}, _from, state) do
+    tokens = Map.put_new(state.tokens, info_hash, token)
+    {:reply, :ok, %{state | tokens: tokens}}
+  end
+
+  def handle_call({:get_token, info_hash}, _from, state) do
+    {:reply, Map.get(state.tokens, info_hash), state}
+  end
+
+  def handle_call({:delete_token, info_hash}, _from, state) do
+    tokens = Map.delete(state.tokens, info_hash)
+    {:reply, :ok, %{state | tokens: tokens}}
+  end
+
   ## Private functions
 
   @spec send_message(%__MODULE__{}, bitstring(), bitstring() | nil) :: :ok | :error
