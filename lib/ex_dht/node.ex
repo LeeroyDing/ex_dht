@@ -107,6 +107,20 @@ defmodule ExDHT.Node do
     {:reply, :ok, %{state | tokens: tokens}}
   end
 
+  def handle_call({:add_local_token, info_hash, token}, _from, state) do
+    local_tokens = Map.put_new(state.local_tokens, info_hash, token)
+    {:reply, :ok, %{state | local_tokens: local_tokens}}
+  end
+
+  def handle_call({:get_local_token, info_hash}, _from, state) do
+    {:reply, Map.get(state.local_tokens, info_hash), state}
+  end
+
+  def handle_call({:delete_local_token, info_hash}, _from, state) do
+    local_tokens = Map.delete(state.local_tokens, info_hash)
+    {:reply, :ok, %{state | local_tokens: local_tokens}}
+  end
+
   ## Private functions
 
   @spec send_message(%__MODULE__{}, bitstring(), bitstring() | nil) :: :ok | :error
