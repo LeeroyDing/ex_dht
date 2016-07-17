@@ -195,6 +195,72 @@ defmodule ExDHT.Node do
     {:reply, send_message(state, message, trans_id), state}
   end
 
+  def handle_call({:found_node, found_nodes, trans_id, sender_id}, _from, state) do
+    message = %{
+      "y" => "r",
+      "r" => %{
+        "id" => sender_id,
+        "nodes" => found_nodes
+      }
+    }
+    Logger.debug "found_node msg to #{state.host}:#{state.port}"
+    {:reply, send_message(state, message, trans_id), state}
+  end
+
+  def handle_call({:get_peers, info_hash, sender_id}, _from, state) do
+    {trans_id, state} = do_add_trans(state, "get_peers", info_hash)
+    message = %{
+      "y" => "q",
+      "q" => "get_peers",
+      "a" => %{
+        "id" => sender_id,
+        "info_hash" => info_hash
+      }
+    }
+    Logger.debug "get_peers msg to #{state.host}:#{state.port}"
+    {:reply, send_message(state, message, trans_id), state}
+  end
+
+  def handle_call({:got_peers, token, values, nodes, trans_id, sender_id}, _from, state) do
+    message = case Enum.count(values) do
+                0 -> %{
+                     "y" => "r",
+                     "r" => %{
+                       "id" => sender_id,
+                       "token" => token,
+                       "nodes" => nodes
+                     }
+                 }
+                _ -> %{
+                     "y" => "r",
+                     "r" => %{
+                       "id" => sender_id,
+                       "token" => token,
+                       "values" => values
+                     }
+                 }
+              end
+    Logger.debug "got_peers msg to #{state.host}:#{state.port}"
+    {:reply, send_message(state, message, trans_id), state}
+  end
+
+  def handle_call({:announce_peer, token, info_hash, sender_id}, _from, state) do
+    {trans_id, state} = do_add_trans(state, "announce_peer", info_hash)
+    message = %{
+      "y" => "q",
+      "q" => "announce_peer",
+      "a" => %{
+        "id" => sender_id,
+        "info_hash" => info_hash,
+        "implied_port" => 1,  # XXX: Should be ignored
+        "port" => state.port,
+        "token" => token
+      }
+    }
+    Logger.debug "announce_peer msg to #{state.host}:#{state.port}"
+    {:reply, send_message(state, message, trans_id), state}
+  end
+  
   ## Private functions
 
   defp do_add_trans(state, name, info_hash \\ nil) do
@@ -210,15 +276,13 @@ defmodule ExDHT.Node do
   end
 
   @spec send_message(%__MODULE__{}, map(), bitstring() | nil) :: :ok | :error
-  defp send_message(state, message, trans_id \\ nil) do
+  defp send_message(state, message, trans_id) do
     message = Map.put_new(message, "v", Utils.version)
     message = case trans_id do
                 nil -> message
                 t -> Map.put_new(message, "t", t)
               end
-    IO.inspect(message, limit: 10000)
     encoded = Bencode.encode!(message)
-    File.write!("/Users/leeroy/encoded", encoded)
     Socket.send_message(encoded, state.host, state.port)
   end
   

@@ -4,9 +4,7 @@ defmodule ExDHT.Utils do
   @trans_id_bits 32
 
   def seed do
-    :random.seed(:erlang.phash2([node]),
-                 :erlang.monotonic_time,
-                 :erlang.unique_integer)
+    :rand.seed(:exsplus)
   end
   
   def random_node_id do
@@ -18,7 +16,7 @@ defmodule ExDHT.Utils do
   end
 
   defp random_bytes(n) when is_number(n) do
-    List.duplicate(0, n) |> Enum.map(fn _ -> :random.uniform(256) - 1 end) |> Enum.reduce(<<>>, fn x, acc -> acc <> <<x>> end)
+    List.duplicate(0, n) |> Enum.map(fn _ -> :rand.uniform(256) - 1 end) |> Enum.reduce(<<>>, fn x, acc -> acc <> <<x>> end)
   end
 
   def ip_to_hex(ip) do
