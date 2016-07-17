@@ -1,5 +1,6 @@
 defmodule ExDHT.Node do
   use GenServer
+  require Logger
   alias ExDHT.Socket
   alias ExDHT.Utils
 
@@ -10,6 +11,12 @@ defmodule ExDHT.Node do
   @spec start_link(String.t, integer, bitstring()) :: GenServer.on_start
   def start_link(host, port, id) do
     GenServer.start_link __MODULE__, {host, port, id}
+  end
+
+  @doc "Get node id"
+  @spec id(pid()) :: bitstring()
+  def id(node) do
+    GenServer.call node, :id
   end
 
   @doc "Generate and add new transaction"
@@ -70,22 +77,53 @@ defmodule ExDHT.Node do
     GenServer.call node, {:update_access, system_time}
   end
 
+  ## Sending messages
+  
+  def send_protocol_error(node, message, trans_id \\ nil) do
+    GenServer.call node, {:send_protocol_error, message, trans_id}
+  end
+
+  def ping(node, sender_id \\ nil) do
+    GenServer.call node, {:ping, sender_id}
+  end
+
+  def pong(node, trans_id \\ nil, sender_id \\ nil) do
+    GenServer.call node, {:pong, trans_id, sender_id}
+  end
+
+  def find_node(node, target_id, sender_id \\ nil) do
+    GenServer.call node, {:find_node, target_id, sender_id}
+  end
+
+  def found_node(node, found_nodes, trans_id \\ nil, sender_id \\ nil) do
+    GenServer.call node, {:fond_node, found_nodes, trans_id, sender_id}
+  end
+
+  def get_peers(node, info_hash, sender_id \\ nil) do
+    GenServer.call node, {:get_peers, info_hash, sender_id}
+  end
+
+  def got_peers(node, token, values, nodes, trans_id \\ nil, sender_id \\ nil) do
+    GenServer.call node, {:got_peers, token, values, nodes, trans_id, sender_id}
+  end
+
+  def announce_peer(node, token, info_hash, sender_id \\ nil) do
+    GenServer.call node, {:announce_peer, token, info_hash, sender_id}
+  end
+
   ## Server callback
 
   def init({host, port, id}) do
     {:ok, %__MODULE__{host: host, port: port, id: id}}
   end
 
+  def handle_call(:id, _from, state) do
+    {:reply, state.id, state}
+  end
+  
   def handle_call({:add_trans, name, info_hash}, _from, state) do
-    trans_id = Utils.random_trans_id()
-    trans = Map.put(
-      state.trans, trans_id, %{
-        "name" => name,
-        "info_hash" => info_hash,
-        "access_time" => :os.system_time
-      }
-    )
-    {:reply, trans_id, %{state | trans: trans}}
+    {trans_id, state} = do_add_trans(state, name, info_hash)
+    {:reply, trans_id, state}
   end
 
   def handle_call({:delete_trans, trans_id}, _from, state) do
@@ -121,16 +159,66 @@ defmodule ExDHT.Node do
     {:reply, :ok, %{state | local_tokens: local_tokens}}
   end
 
+  def handle_call({:send_protocol_error, message, trans_id}, _from, state) do
+    message = %{
+      "y" => "e",
+      "e" => [203, message]
+    }
+    Logger.debug "protocol error msg to #{state.host}:#{state.port}"
+    {:reply, send_message(state, message, trans_id), state}
+  end
+
+  def handle_call({:ping, sender_id}, _from, state) do
+    {trans_id, state} = do_add_trans(state, "ping")
+    message = %{
+      "y" => "q",
+      "q" => "ping",
+      "a" => %{
+        "id" => sender_id
+      }
+    }
+    Logger.debug "ping msg to #{state.host}:#{state.port}"
+    {:reply, send_message(state, message, trans_id), state}
+  end
+
+  def handle_call({:find_node, target_id, sender_id}, _from, state) do
+    {trans_id, state} = do_add_trans(state, "find_node")
+    message = %{
+      "y" => "q",
+      "q" => "find_node",
+      "a" => %{
+        "id" => sender_id,
+        "target" => target_id
+      }
+    }
+    Logger.debug "find_node msg to #{state.host}:#{state.port}"
+    {:reply, send_message(state, message, trans_id), state}
+  end
+
   ## Private functions
 
-  @spec send_message(%__MODULE__{}, bitstring(), bitstring() | nil) :: :ok | :error
+  defp do_add_trans(state, name, info_hash \\ nil) do
+    trans_id = Utils.random_trans_id
+    trans = Map.put(
+      state.trans, trans_id, %{
+        "name" => name,
+        "info_hash" => info_hash,
+        "access_time" => :os.system_time
+      }
+    )
+    {trans_id, %{state | trans: trans}}
+  end
+
+  @spec send_message(%__MODULE__{}, map(), bitstring() | nil) :: :ok | :error
   defp send_message(state, message, trans_id \\ nil) do
     message = Map.put_new(message, "v", Utils.version)
     message = case trans_id do
                 nil -> message
                 t -> Map.put_new(message, "t", t)
               end
+    IO.inspect(message, limit: 10000)
     encoded = Bencode.encode!(message)
+    File.write!("/Users/leeroy/encoded", encoded)
     Socket.send_message(encoded, state.host, state.port)
   end
   
