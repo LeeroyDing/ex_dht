@@ -1,4 +1,5 @@
 defmodule ExDHT.Utils do
+  use Bitwise
 
   @node_id_bits 160
   @trans_id_bits 32
@@ -61,6 +62,12 @@ defmodule ExDHT.Utils do
     <<a, b, c, d>> = <<ip :: size(32)>>
 
     parse_nodes(rest, [{<<node_id :: @node_id_bits>>, "#{a}.#{b}.#{c}.#{d}", port} | nodes])
+  end
+
+  def string_xor(lhs, rhs) do
+    Enum.zip(to_charlist(lhs), to_charlist(rhs))
+    |> Enum.map(fn {x, y} -> x ^^^ y end)
+    |> to_string
   end
 
   def version do

@@ -7,6 +7,8 @@ defmodule ExDHT do
   @bootstrap_attemp_timeout 10000
 
   def start(_type, _args) do
+    ExDHT.Socket.start_link
+    ExDHT.RouteTable.start_link
     {:ok, self}
   end
 
